@@ -1,6 +1,6 @@
 # Text Share
 
-A small Cloudflare Worker app for sharing Markdown text snippets and documents behind a shared password.
+A small Cloudflare Worker app for sharing Markdown text snippets and documents from a password-protected board.
 
 ## Features
 
@@ -8,8 +8,8 @@ A small Cloudflare Worker app for sharing Markdown text snippets and documents b
 - Two-column UI: Markdown snippets on the left, document uploads on the right
 - Markdown snippets render as copyable code blocks
 - Drag-and-drop document uploads
-- Copy protected document download links
-- Direct document downloads through the Worker
+- Copy public document download links
+- Public direct downloads through the Worker
 - Manual delete for every text snippet and document
 - Per-item expiration, default 7 days, max 1095 days
 - Daily scheduled cleanup for expired D1 metadata and R2 objects
@@ -86,6 +86,8 @@ D1 stores item metadata:
 - `created_at`, `expires_at`
 
 R2 stores the actual Markdown text bodies and document files.
+
+The board, uploads, and deletes require the shared password. Download URLs under `/items/:id/download` are public so they can be shared directly. Public downloads still use the same item lifecycle: expired or manually deleted items return `404`.
 
 Expired items are hidden immediately by `expires_at` checks. A daily Cron trigger physically deletes expired D1 rows and R2 objects.
 

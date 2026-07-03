@@ -481,6 +481,11 @@ async function route(request: Request, env: Env, requestId: string): Promise<Res
 
   if (pathname === "/login") return handleLogin(request, env);
 
+  const downloadMatch = pathname.match(/^\/items\/([^/]+)\/download$/);
+  if (downloadMatch && request.method === "GET") {
+    return handleDownload(env, decodeURIComponent(downloadMatch[1]));
+  }
+
   const authenticated = await verifySession(request, env);
   if (!authenticated) {
     if (request.method === "GET") {
@@ -503,11 +508,6 @@ async function route(request: Request, env: Env, requestId: string): Promise<Res
   }
   if (pathname === "/documents" && request.method === "POST") {
     return handleCreateDocument(request, env, requestId);
-  }
-
-  const downloadMatch = pathname.match(/^\/items\/([^/]+)\/download$/);
-  if (downloadMatch && request.method === "GET") {
-    return handleDownload(env, decodeURIComponent(downloadMatch[1]));
   }
 
   const deleteMatch = pathname.match(/^\/items\/([^/]+)\/delete$/);

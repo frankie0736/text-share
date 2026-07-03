@@ -368,7 +368,7 @@ describe("worker", () => {
     expect(html.indexOf("new.pdf")).toBeLessThan(html.indexOf("old.pdf"));
   });
 
-  test("document downloads only after login and oversized uploads are blocked", async () => {
+  test("document downloads are public while management actions stay protected", async () => {
     const env = makeEnv();
     const cookie = await login(env);
     const body = new FormData();
@@ -393,7 +393,18 @@ describe("worker", () => {
       env,
       {} as ExecutionContext,
     );
-    expect(unauthenticatedDownload.status).toBe(303);
+    expect(unauthenticatedDownload.status).toBe(200);
+    expect(await unauthenticatedDownload.text()).toBe("hello");
+
+    const unauthenticatedDelete = await worker.fetch(
+      new Request(`https://paste.example/items/${item.id}/delete`, {
+        method: "POST",
+      }),
+      env,
+      {} as ExecutionContext,
+    );
+    expect(unauthenticatedDelete.status).toBe(303);
+    expect(unauthenticatedDelete.headers.get("location")).toBe("/login");
 
     const download = await worker.fetch(
       new Request(`https://paste.example/items/${item.id}/download`, {
@@ -404,6 +415,34 @@ describe("worker", () => {
     );
     expect(download.status).toBe(200);
     expect(await download.text()).toBe("hello");
+  });
+
+  test("expired document download links return not found", async () => {
+    const env = makeEnv();
+    env.DB.rows.push({
+      id: "expired-doc",
+      kind: "document",
+      r2_key: "documents/expired-doc/spec.md",
+      file_name: "spec.md",
+      file_type: "text/markdown",
+      file_size: 5,
+      created_at: 1,
+      expires_at: 1,
+    });
+    await env.BUCKET.put("documents/expired-doc/spec.md", "hello");
+
+    const response = await worker.fetch(
+      new Request("https://paste.example/items/expired-doc/download"),
+      env,
+      {} as ExecutionContext,
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  test("oversized document uploads are blocked", async () => {
+    const env = makeEnv();
+    const cookie = await login(env);
 
     const oversized = new FormData();
     oversized.set(
