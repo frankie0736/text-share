@@ -1,0 +1,2 @@
+SHARE_PASSWORD=change-me
+SESSION_SECRET=replace-with-a-long-random-string
